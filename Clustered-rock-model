@@ -1,0 +1,604 @@
+model clean
+
+def num_of_different_group
+    num_ball_m_c = 30 
+    num_ball_sd_c = 10 
+    num_ball_m_s = 19
+    num_ball_sd_s = 8 
+    num_ball_m_y = 12 
+    num_ball_sd_y = 5 
+    por_changshi = 0.37
+    por_shiying = 0.48
+    por_yunmu = 0.15
+end
+@num_of_different_group
+
+fish def yunmu_group(bp)
+
+loop foreach local cp ball.contactmap(bp,contact.typeid('ball-ball'))
+    
+    if judgement_condition == 5
+        exit loop
+    endif
+    
+    if count >= ball_maxnum_in_cluster then
+        count = 0
+            loop foreach local bp_group ball.groupmap(ball_group_name)
+                local ball_num +=1
+            endloop
+            
+            command
+                list @ball_num
+            endcommand
+            ball_num = 0
+        exit loop
+    endif
+    
+    if contact.end1(cp) = bp then
+        bp_other = contact.end2(cp)
+    else
+        bp_other = contact.end1(cp)
+    endif
+    
+    if ball.group(bp_other) # 'None' then
+        continue
+    endif
+    ball.group(bp_other) = ball_group_name
+    count = count + 1
+    ball_num_in_group = ball_num_in_group + 1
+      
+        loop foreach local cp_other ball.contactmap(bp_other,contact.typeid('ball-ball'))
+            if judgement_condition == 5
+                exit loop
+            endif
+            
+            if count >= ball_maxnum_in_cluster then
+                count = 0
+                    loop foreach bp_group ball.groupmap(ball_group_name)
+                        ball_num +=1
+                    endloop
+                    command
+                        list @ball_num
+                    endcommand
+                    ball_num = 0
+                    judgement_condition = 5
+                exit loop
+            endif
+            
+            if contact.end1(cp_other) = bp_other then
+                bp_other_other = contact.end2(cp_other)
+            else
+                bp_other_other = contact.end1(cp_other)
+            endif
+            
+            if ball.group(bp_other_other) # 'None' then
+                continue
+            endif
+            ball.group(bp_other_other) = ball_group_name
+            count = count + 1
+            ball_num_in_group = ball_num_in_group + 1
+            
+            ;command
+            ;    pause key
+            ;end_command
+        endloop
+    endloop
+end
+
+
+fish def make_clusters   
+    
+    total_num = ball.num   
+  
+    ball_num_in_geo = 40
+    
+    count = 0
+   
+    cluster_index = 0
+   
+    ball_group_list = map()
+    
+	loop foreach local bp ball.list
+        
+        judgement_condition = 6
+        
+        if ball.group(bp) # 'None' then
+            continue
+        endif  
+        
+        ball_num_in_group = ball_num_in_group + 1
+        
+        
+        cluster_index = cluster_index + 1        
+        
+        
+        if ball_num_in_group < por_yunmu * total_num
+            ball_maxnum_in_cluster = num_ball_m_y + int(num_ball_sd_y * math.random.gauss)
+            ball_group_name = string.build('cluster_yunmu_%1', cluster_index)
+            b = map.add(ball_group_list,cluster_index,ball_group_name)     
+        else if ball_num_in_group < (por_yunmu + por_shiying) * total_num
+            ball_maxnum_in_cluster = num_ball_m_s + int(num_ball_sd_s * math.random.gauss)
+            ball_group_name = string.build('cluster_shiying_%1', cluster_index)
+            b = map.add(ball_group_list,cluster_index,ball_group_name)     
+        else 
+            ball_maxnum_in_cluster = num_ball_m_c + int(num_ball_sd_c * math.random.gauss)
+            ball_group_name = string.build('cluster_changshi_%1', cluster_index)
+            b = map.add(ball_group_list,cluster_index,ball_group_name)     
+        endif        
+     
+        ball.group(bp) = ball_group_name        
+        count = count + 1
+        
+        local cluster_prefix = string.char(ball_group_name,9)      
+        
+        if cluster_prefix = 'y'
+            yunmu_group(bp)
+            continue
+        endif
+        
+        loop foreach local cp ball.contactmap(bp,contact.typeid('ball-ball'))
+          
+            if judgement_condition == 5
+                exit loop
+            endif
+            
+            if count >= ball_maxnum_in_cluster then
+                count = 0
+                    loop foreach local bp_group ball.groupmap(ball_group_name)
+                        local ball_num +=1
+                    endloop
+                    
+                    command
+                        list @ball_num
+                    endcommand
+                    ball_num = 0
+                exit loop
+            endif
+         
+            if contact.end1(cp) = bp then
+                bp_other = contact.end2(cp)
+            else
+                bp_other = contact.end1(cp)
+            endif
+            
+            if ball.group(bp_other) # 'None' then
+                continue
+            endif
+            ball.group(bp_other) = ball_group_name
+            count = count + 1
+            ball_num_in_group = ball_num_in_group + 1
+            
+            ;command
+            ;    pause key
+            ;end_command
+           
+                loop foreach local cp_other ball.contactmap(bp_other,contact.typeid('ball-ball'))
+                    if judgement_condition == 5
+                        exit loop
+                    endif
+                    
+                    if count >= ball_maxnum_in_cluster then
+                        count = 0
+                            loop foreach bp_group ball.groupmap(ball_group_name)
+                                ball_num +=1
+                            endloop
+                            command
+                                list @ball_num
+                            endcommand
+                            ball_num = 0
+                            judgement_condition = 5
+                        exit loop
+                    endif
+                    
+                    ;if contact.end1(cp_other) = bp then
+                    ;    continue
+                    ;endif
+                    
+                    if contact.end1(cp_other) = bp_other then
+                        bp_other_other = contact.end2(cp_other)
+                    else
+                        bp_other_other = contact.end1(cp_other)
+                    endif
+                 
+                    if ball.group(bp_other_other) # 'None' then
+                        continue
+                    endif
+                    ball.group(bp_other_other) = ball_group_name
+                    count = count + 1
+                    ball_num_in_group = ball_num_in_group + 1
+                    
+                    ;command
+                    ;    pause key
+                    ;end_command
+                 
+                 
+                        loop foreach local cp_other_other ball.contactmap(bp_other_other,contact.typeid('ball-ball'))
+                                if judgement_condition == 5
+                                    exit loop
+                                endif
+                              
+                                if count >= ball_maxnum_in_cluster then
+                                    count = 0
+                                        loop foreach bp_group ball.groupmap(ball_group_name)
+                                            ball_num +=1
+                                        endloop
+                                        command
+                                            list @ball_num
+                                        endcommand
+                                        ball_num = 0
+                                        judgement_condition = 5
+                                    exit loop
+                                endif
+                             
+                                
+                                if contact.end1(cp_other_other) = bp_other_other then
+                                    bp_other_other_other = contact.end2(cp_other_other)
+                                else
+                                    bp_other_other_other = contact.end1(cp_other_other)
+                                endif
+                             
+                                if ball.group(bp_other_other_other) # 'None' then
+                                    continue
+                                endif
+                                ball.group(bp_other_other_other) = ball_group_name
+                                count = count + 1
+                                ball_num_in_group = ball_num_in_group + 1
+                                
+                                ;command
+                                ;    pause key
+                                ;endcommand
+                                
+                                    loop foreach local cp_other_other_other ball.contactmap(bp_other_other_other,contact.typeid('ball-ball'))
+                                        if judgement_condition == 5
+                                            exit loop
+                                        endif
+                                      
+                                        if count >= ball_maxnum_in_cluster then
+                                            count = 0
+                                                loop foreach bp_group ball.groupmap(ball_group_name)
+                                                    ball_num +=1
+                                                endloop
+                                                command
+                                                    list @ball_num
+                                                endcommand
+                                                ball_num = 0
+                                                judgement_condition = 5
+                                            exit loop
+                                        endif
+                                      
+                                        
+                                        if contact.end1(cp_other_other_other) = bp_other_other_other then
+                                            bp_other_other_other_other = contact.end2(cp_other_other_other)
+                                        else
+                                            bp_other_other_other_other = contact.end1(cp_other_other_other)
+                                        endif
+                                      
+                                        if ball.group(bp_other_other_other_other) # 'None' then
+                                            continue
+                                        endif
+                                        ball.group(bp_other_other_other_other) = ball_group_name
+                                        count = count + 1
+                                        ball_num_in_group = ball_num_in_group + 1
+                                        
+                                        ;command
+                                        ;    pause key
+                                        ;endcommand
+                                      
+                                        loop foreach local cp_other_other_other_other ball.contactmap(bp_other_other_other_other,contact.typeid('ball-ball'))
+                                            if judgement_condition == 5
+                                                exit loop
+                                            endif
+                                            
+                                            if count >= ball_maxnum_in_cluster then
+                                                count = 0
+                                                    loop foreach bp_group ball.groupmap(ball_group_name)
+                                                        ball_num +=1
+                                                    endloop
+                                                    command
+                                                        list @ball_num
+                                                    endcommand
+                                                    ball_num = 0
+                                                    judgement_condition = 5
+                                                exit loop
+                                            endif
+                                        
+                                            
+                                            if contact.end1(cp_other_other_other_other) = bp_other_other_other_other then
+                                                bp_other_other_other_other_other = contact.end2(cp_other_other_other_other)
+                                            else
+                                                bp_other_other_other_other_other = contact.end1(cp_other_other_other_other)
+                                            endif
+                                        
+                                            if ball.group(bp_other_other_other_other_other) # 'None' then
+                                                continue
+                                            endif
+                                            ball.group(bp_other_other_other_other_other) = ball_group_name
+                                            count = count + 1
+                                            ball_num_in_group = ball_num_in_group + 1
+                                            
+                                            ;command
+                                            ;    pause key
+                                            ;endcommand
+                                            
+                                                loop foreach local cp_other_other_other_other_other ball.contactmap(bp_other_other_other_other_other,contact.typeid('ball-ball'))
+                                                    if judgement_condition == 5
+                                                        exit loop
+                                                    endif
+                                                    
+                                                    if count >= ball_maxnum_in_cluster then
+                                                        count = 0
+                                                            loop foreach bp_group ball.groupmap(ball_group_name)
+                                                                ball_num +=1
+                                                            endloop
+                                                            command
+                                                                list @ball_num
+                                                            endcommand
+                                                            ball_num = 0
+                                                            judgement_condition = 5
+                                                        exit loop
+                                                    endif
+                                                  
+                                                    
+                                                    if contact.end1(cp_other_other_other_other_other) = bp_other_other_other_other_other then
+                                                        bp_other_other_other_other_other_other = contact.end2(cp_other_other_other_other_other)
+                                                    else
+                                                        bp_other_other_other_other_other_other = contact.end1(cp_other_other_other_other_other)
+                                                    endif
+                                                  
+                                                    if ball.group(bp_other_other_other_other_other_other) # 'None' then
+                                                        continue
+                                                    endif
+                                                    ball.group(bp_other_other_other_other_other_other) = ball_group_name
+                                                    count = count + 1
+                                                    ball_num_in_group = ball_num_in_group + 1
+                                                    
+                                                    ;command
+                                                    ;    pause key
+                                                    ;endcommand
+                                                    
+                                                       loop foreach local cp_other_other_other_other_other_other ball.contactmap(bp_other_other_other_other_other_other,contact.typeid('ball-ball'))
+                                                            if judgement_condition == 5
+                                                                exit loop
+                                                            endif
+                                                            
+                                                            if count >= ball_maxnum_in_cluster then
+                                                                count = 0
+                                                                    loop foreach bp_group ball.groupmap(ball_group_name)
+                                                                        ball_num +=1
+                                                                    endloop
+                                                                    command
+                                                                        list @ball_num
+                                                                    endcommand
+                                                                    ball_num = 0
+                                                                    judgement_condition = 5
+                                                                exit loop
+                                                            endif
+                                                          
+                                                            
+                                                            if contact.end1(cp_other_other_other_other_other_other) = bp_other_other_other_other_other_other then
+                                                                bp_other_other_other_other_other_other_other = contact.end2(cp_other_other_other_other_other_other)
+                                                            else
+                                                                bp_other_other_other_other_other_other_other = contact.end1(cp_other_other_other_other_other_other)
+                                                            endif
+                                                          
+                                                            if ball.group(bp_other_other_other_other_other_other_other) # 'None' then
+                                                                continue
+                                                            endif
+                                                            ball.group(bp_other_other_other_other_other_other_other) = ball_group_name
+                                                            count = count + 1
+                                                            ball_num_in_group = ball_num_in_group + 1
+                                                            
+                                                            ;command
+                                                            ;    pause key
+                                                            ;endcommand
+                                                            
+                                                                loop foreach local cp_other_7 ball.contactmap(bp_other_other_other_other_other_other_other,contact.typeid('ball-ball'))
+                                                                    if judgement_condition == 5
+                                                                        exit loop
+                                                                    endif
+                                                                    
+                                                                    if count >= ball_maxnum_in_cluster then
+                                                                        count = 0
+                                                                            loop foreach bp_group ball.groupmap(ball_group_name)
+                                                                                ball_num +=1
+                                                                            endloop
+                                                                            command
+                                                                                list @ball_num
+                                                                            endcommand
+                                                                            ball_num = 0
+                                                                            judgement_condition = 5
+                                                                        exit loop
+                                                                    endif
+                                                                 
+                                                                    
+                                                                    if contact.end1(cp_other_7) = bp_other_other_other_other_other_other then
+                                                                        bp_other_8 = contact.end2(cp_other_7)
+                                                                    else
+                                                                        bp_other_8 = contact.end1(cp_other_7)
+                                                                    endif
+                                                                 
+                                                                    if ball.group(bp_other_8) # 'None' then
+                                                                        continue
+                                                                    endif
+                                                                    ball.group(bp_other_8) = ball_group_name
+                                                                    count = count + 1
+                                                                    ball_num_in_group = ball_num_in_group + 1
+                                                                 
+                                                                    ;command
+                                                                    ;    pause key
+                                                                    ;endcommand
+                                                                  
+                                                                  
+                                                                        loop foreach local cp_other_8 ball.contactmap(bp_other_8,contact.typeid('ball-ball'))
+                                                                            if judgement_condition == 5
+                                                                                exit loop
+                                                                            endif
+                                                                            
+                                                                            if count >= ball_maxnum_in_cluster then
+                                                                                count = 0
+                                                                                    loop foreach bp_group ball.groupmap(ball_group_name)
+                                                                                        ball_num +=1
+                                                                                    endloop
+                                                                                    command
+                                                                                        list @ball_num
+                                                                                    endcommand
+                                                                                    ball_num = 0
+                                                                                    judgement_condition = 5
+                                                                                exit loop
+                                                                            endif
+                                                                          
+                                                                            
+                                                                            if contact.end1(cp_other_8) = bp_other_8 then
+                                                                                bp_other_9 = contact.end2(cp_other_8)
+                                                                            else
+                                                                                bp_other_9 = contact.end1(cp_other_8)
+                                                                            endif
+                                                                          
+                                                                            if ball.group(bp_other_9) # 'None' then
+                                                                                continue
+                                                                            endif
+                                                                            ball.group(bp_other_9) = ball_group_name
+                                                                            count = count + 1
+                                                                            ball_num_in_group = ball_num_in_group + 1
+                                                                            
+                                                                            ;command
+                                                                            ;    pause key
+                                                                            ;endcommand
+                                                            
+                                                            
+                                                                                loop foreach local cp_other_9 ball.contactmap(bp_other_9,contact.typeid('ball-ball'))
+                                                                                    if judgement_condition == 5
+                                                                                        exit loop
+                                                                                    endif
+                                                                                    
+                                                                                    if count >= ball_maxnum_in_cluster then
+                                                                                        count = 0
+                                                                                            loop foreach bp_group ball.groupmap(ball_group_name)
+                                                                                                ball_num +=1
+                                                                                            endloop
+                                                                                            command
+                                                                                                list @ball_num
+                                                                                            endcommand
+                                                                                            ball_num = 0
+                                                                                            judgement_condition = 5
+                                                                                        exit loop
+                                                                                    endif
+                                                                                 
+                                                                                    
+                                                                                    if contact.end1(cp_other_9) = bp_other_9 then
+                                                                                        bp_other_10 = contact.end2(cp_other_9)
+                                                                                    else
+                                                                                        bp_other_10 = contact.end1(cp_other_9)
+                                                                                    endif
+                                                                                  
+                                                                                    if ball.group(bp_other_10) # 'None' then
+                                                                                        continue
+                                                                                    endif
+                                                                                    ball.group(bp_other_10) = ball_group_name
+                                                                                    count = count + 1
+                                                                                    ball_num_in_group = ball_num_in_group + 1
+                                                                                    
+                                                                                    ;command
+                                                                                    ;    pause key
+                                                                                    ;endcommand
+                                                                                    
+                                                                                        loop foreach local cp_other_10 ball.contactmap(bp_other_10,contact.typeid('ball-ball'))
+                                                                                            if judgement_condition == 5
+                                                                                                exit loop
+                                                                                            endif
+                                                                                            
+                                                                                            if count >= ball_maxnum_in_cluster then
+                                                                                                count = 0
+                                                                                                    loop foreach bp_group ball.groupmap(ball_group_name)
+                                                                                                        ball_num +=1
+                                                                                                    endloop
+                                                                                                    command
+                                                                                                        list @ball_num
+                                                                                                    endcommand
+                                                                                                    ball_num = 0
+                                                                                                    judgement_condition = 5
+                                                                                                exit loop
+                                                                                            endif
+                                                                                        
+                                                                                            
+                                                                                            if contact.end1(cp_other_10) = bp_other_10 then
+                                                                                                bp_other_11 = contact.end2(cp_other_10)
+                                                                                            else
+                                                                                                bp_other_11 = contact.end1(cp_other_10)
+                                                                                            endif
+                                                                                        
+                                                                                            if ball.group(bp_other_11) # 'None' then
+                                                                                                continue
+                                                                                            endif
+                                                                                            ball.group(bp_other_11) = ball_group_name
+                                                                                            count = count + 1
+                                                                                            ball_num_in_group = ball_num_in_group + 1
+                                                                                            
+                                                                                            ;command
+                                                                                            ;    pause key
+                                                                                            ;endcommand
+                                                                                        endloop
+                                                                                endloop
+                                                                        endloop
+                                                                endloop
+                                                            
+                                                        endloop
+                                                endloop
+                                            end_loop
+                                    end_loop
+                            end_loop
+                end_loop
+		end_loop
+	end_loop 
+end
+;----------------------------------------------------------------------------------
+@make_clusters
+list @cluster_index
+
+fish def map_size_of_group
+    gerhewrthr = map.size(ball_group_list)
+end
+@map_size_of_group
+list @gerhewrthr
+
+fish def count_composition_proportion
+    
+    sun_num_of_yunmu = 0
+    sun_num_of_changshi = 0
+    sun_num_of_shiying = 0
+    sun_num_of_ball = 0
+    loop foreach local group_map_value ball_group_list ;traverse all ball_group_name       
+     
+        cluster_prefix = string.char(group_map_value,9)      
+        
+        if cluster_prefix == 'c'
+            loop foreach local cbp ball.groupmap(group_map_value)
+                sun_num_of_changshi = sun_num_of_changshi + 1
+                sun_num_of_ball = sun_num_of_ball + 1
+            endloop
+        endif
+     
+        if cluster_prefix == 's'
+            loop foreach local sbp ball.groupmap(group_map_value)
+                sun_num_of_shiying = sun_num_of_shiying + 1
+                sun_num_of_ball = sun_num_of_ball + 1
+            endloop
+        endif
+        
+        if cluster_prefix == 'y'
+             loop foreach local ybp ball.groupmap(group_map_value)
+                sun_num_of_yunmu = sun_num_of_yunmu + 1
+                sun_num_of_ball = sun_num_of_ball + 1
+            endloop
+        endif        
+        
+    endloop 
+    
+    actual_por_of_changshi = float(sun_num_of_changshi)/sun_num_of_ball
+    actual_por_of_yunmu = float(sun_num_of_yunmu)/sun_num_of_ball
+    actual_por_of_shiying = float(sun_num_of_shiying)/sun_num_of_ball
+    selected_group = math.min(actual_por_of_changshi, actual_por_of_yunmu, actual_por_of_shiying)
+end
+@count_composition_proportion
+
+model save 'cluster_with_single_ball' localdir
